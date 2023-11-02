@@ -9,28 +9,17 @@ locals {
 }
 
 provider "aws" {
-  region = var.aws_region
-
+  region                 = var.aws_region
   skip_region_validation = var.aws_skip_region_validation
-
-#  endpoints {
-#    ec2     = lookup(var.custom_endpoints, "ec2", null)
-#    elb     = lookup(var.custom_endpoints, "elasticloadbalancing", null)
-#    iam     = lookup(var.custom_endpoints, "iam", null)
-#    route53 = lookup(var.custom_endpoints, "route53", null)
-#    s3      = lookup(var.custom_endpoints, "s3", null)
-#    sts     = lookup(var.custom_endpoints, "sts", null)
-#  }
-
 }
 
 module "bootstrap" {
   source = "./bootstrap"
 
-  ami                      = local.rhcos_image
-  instance_type            = var.aws_bootstrap_instance_type
-  cluster_id               = module.installer.infraID
-  ignition                 = module.installer.bootstrap_ign
+  ami           = local.rhcos_image
+  instance_type = var.aws_bootstrap_instance_type
+  cluster_id    = module.installer.infraID
+  ignition      = module.installer.bootstrap_ign
   # ignition_bucket          = var.aws_ignition_bucket
   subnet_id                = var.aws_publish_strategy == "External" ? module.vpc.az_to_public_subnet_id[local.aws_azs[0]] : module.vpc.az_to_private_subnet_id[local.aws_azs[0]]
   target_group_arns        = module.vpc.aws_lb_target_group_arns
@@ -41,7 +30,8 @@ module "bootstrap" {
   volume_kms_key_id        = var.aws_master_root_volume_kms_key_id
   publish_strategy         = var.aws_publish_strategy
 
-  tags = local.tags
+  tags       = local.tags
+  depends_on = [module.iam]
 }
 
 module "masters" {
@@ -66,20 +56,20 @@ module "masters" {
   ec2_ami                  = local.rhcos_image
   user_data_ign            = module.installer.master_ign
   publish_strategy         = var.aws_publish_strategy
+  depends_on               = [module.bootstrap]
 }
 
 module "iam" {
-  source = "./iam"
-
+  source     = "./iam"
   cluster_id = module.installer.infraID
 
-  tags = local.tags
+  tags       = local.tags
+  depends_on = [module.vpc]
 }
 
 
 module "dns" {
-  count                    = var.openshift_byo_dns ? 0 : 1
-
+  count  = var.openshift_byo_dns ? 0 : 1
   source = "./route53"
 
   api_external_lb_dns_name = module.vpc.aws_lb_api_external_dns_name
@@ -98,46 +88,48 @@ module "dns" {
 module "vpc" {
   source = "./vpc"
 
-  cidr_blocks      = [ var.machine_cidr ]
-  cluster_id       = module.installer.infraID
-  region           = var.aws_region
-  vpc              = var.aws_vpc
-  public_subnets   = var.aws_public_subnets
-  private_subnets  = var.aws_private_subnets
-  publish_strategy = var.aws_publish_strategy
-  airgapped = var.airgapped
+  cidr_blocks        = [var.machine_cidr]
+  cluster_id         = module.installer.infraID
+  region             = var.aws_region
+  vpc                = var.aws_vpc
+  public_subnets     = var.aws_public_subnets
+  private_subnets    = var.aws_private_subnets
+  publish_strategy   = var.aws_publish_strategy
+  airgapped          = var.airgapped
   availability_zones = local.aws_azs
 
-  tags = local.tags
+  tags       = local.tags
+  depends_on = [module.installer]
 }
 
 module "installer" {
   source = "./install"
 
-  ami = local.rhcos_image
+  ami         = local.rhcos_image
   clustername = var.cluster_name
-  domain = var.base_domain
-  aws_region = var.aws_region
+  domain      = var.base_domain
+  aws_region  = var.aws_region
   # aws_access_key_id = var.aws_access_key_id
   # aws_secret_access_key = var.aws_secret_access_key
-  vpc_cidr_block = var.machine_cidr
-  master_count = length(local.aws_azs)
-  infra_count = var.infra_count
-  openshift_pull_secret = var.openshift_pull_secret
-  openshift_installer_url = local.openshift_installer_url
-  aws_worker_root_volume_iops = var.aws_worker_root_volume_iops
-  aws_worker_root_volume_size = var.aws_worker_root_volume_size
-  aws_worker_root_volume_type = var.aws_worker_root_volume_type
-  aws_infra_root_volume_iops = var.aws_infra_root_volume_iops
-  aws_infra_root_volume_size = var.aws_infra_root_volume_size
-  aws_infra_root_volume_type = var.aws_infra_root_volume_type
-  aws_worker_availability_zones = local.aws_azs
-  aws_worker_instance_type = var.aws_worker_instance_type
-  aws_infra_instance_type = var.aws_infra_instance_type
-  aws_private_subnets = var.aws_private_subnets
-  airgapped = var.airgapped
-  proxy_config = var.proxy_config
-  openshift_ssh_key  = var.openshift_ssh_key 
+  vpc_cidr_block                    = var.machine_cidr
+  master_count                      = length(local.aws_azs)
+  infra_count                       = var.infra_count
+  openshift_pull_secret             = var.openshift_pull_secret
+  openshift_installer_url           = local.openshift_installer_url
+  aws_worker_root_volume_iops       = var.aws_worker_root_volume_iops
+  aws_worker_root_volume_size       = var.aws_worker_root_volume_size
+  aws_worker_root_volume_type       = var.aws_worker_root_volume_type
+  aws_infra_root_volume_iops        = var.aws_infra_root_volume_iops
+  aws_infra_root_volume_size        = var.aws_infra_root_volume_size
+  aws_infra_root_volume_type        = var.aws_infra_root_volume_type
+  aws_worker_availability_zones     = local.aws_azs
+  aws_worker_instance_type          = var.aws_worker_instance_type
+  aws_infra_instance_type           = var.aws_infra_instance_type
+  aws_private_subnets               = var.aws_private_subnets
+  airgapped                         = var.airgapped
+  proxy_config                      = var.proxy_config
+  openshift_ssh_key                 = var.openshift_ssh_key
   openshift_additional_trust_bundle = var.openshift_additional_trust_bundle
-  byo_dns = var.openshift_byo_dns
+  byo_dns                           = var.openshift_byo_dns
+  depends_on                        = [module.dns]
 }

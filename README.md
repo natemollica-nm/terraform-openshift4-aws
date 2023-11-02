@@ -46,7 +46,7 @@ This project uses mainly Terraform as infrastructure management and installation
 6. Get the Terraform code
 
    ```bash
-   git clone https://github.com/ibm-cloud-architecture/terraform-openshift4-aws.git
+   git clone https://github.com/natemollica-nm/terraform-openshift4-aws.git
    ```
 
 7. Prepare the DNS
@@ -97,14 +97,14 @@ This project installs the OpenShift 4 in several stages where each stage automat
 
  	- route53: generate a private hosted zone using route 53
 	- install: Build the installation files, ignition configs and modify YAML files
-  - vpc: Create the VPC, subnets, security groups and load balancers for the OpenShift cluster
-	- iam: define AWS authorities for the masters and workers
-	- bootstrap: main module to provision the bootstrap node and generates OpenShift installation files and resources
-	- master: create master nodes manually (UPI)
+    - vpc: Create the VPC, subnets, security groups and load balancers for the OpenShift cluster
+    - iam: define AWS authorities for the masters and workers
+    - bootstrap: main module to provision the bootstrap node and generates OpenShift installation files and resources
+    - master: create master nodes manually (UPI)
 
-	You can also provision all the components in a single terraform main module, to do that, you need to use a terraform.tfvars, that is copied from the terraform.tfvars.example file. The variables related to that are:
+      You can also provision all the components in a single terraform main module, to do that, you need to use a terraform.tfvars, that is copied from the terraform.tfvars.example file. The variables related to that are:
 
-	Create a `terraform.tfvars` file with following content:
+      Create a `terraform.tfvars` file with following content:
 
 ```
 cluster_name = "ocp4"
