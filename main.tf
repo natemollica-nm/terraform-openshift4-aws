@@ -31,7 +31,6 @@ module "bootstrap" {
   publish_strategy         = var.aws_publish_strategy
 
   tags       = local.tags
-  depends_on = [module.iam]
 }
 
 module "masters" {
@@ -56,7 +55,6 @@ module "masters" {
   ec2_ami                  = local.rhcos_image
   user_data_ign            = module.installer.master_ign
   publish_strategy         = var.aws_publish_strategy
-  depends_on               = [module.bootstrap]
 }
 
 module "iam" {
@@ -64,7 +62,6 @@ module "iam" {
   cluster_id = module.installer.infraID
 
   tags       = local.tags
-  depends_on = [module.vpc]
 }
 
 
@@ -99,7 +96,6 @@ module "vpc" {
   availability_zones = local.aws_azs
 
   tags       = local.tags
-  depends_on = [module.installer]
 }
 
 module "installer" {
@@ -131,5 +127,4 @@ module "installer" {
   openshift_ssh_key                 = var.openshift_ssh_key
   openshift_additional_trust_bundle = var.openshift_additional_trust_bundle
   byo_dns                           = var.openshift_byo_dns
-  depends_on                        = [module.dns]
 }
